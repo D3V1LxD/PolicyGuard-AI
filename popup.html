@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolicyGuard AI</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="brand-row">
+          <h1>PolicyGuard AI</h1>
+          <span class="brand-chip">Classic View</span>
+        </div>
+        <p class="subtle">Policy risk snapshot for the current page</p>
+        <p id="pageStatus" class="muted">Checking page type...</p>
+      </header>
+
+      <section class="controls">
+        <label class="toggle-row">
+          <span>Privacy Mode</span>
+          <input id="privacyModeToggle" type="checkbox" />
+        </label>
+
+        <label class="field-label" for="apiKeyInput">GitHub API Key</label>
+        <input id="apiKeyInput" type="password" placeholder="YOUR_GITHUB_API_KEY" autocomplete="off" />
+
+        <button id="analyzeBtn" class="primary-btn">Analyze Page</button>
+      </section>
+
+      <section id="loadingState" class="loading hidden">
+        <div class="spinner"></div>
+        <span>Analyzing policy...</span>
+      </section>
+
+      <section id="errorState" class="error hidden"></section>
+
+      <section id="resultState" class="result hidden">
+        <div class="score-row">
+          <div id="scoreBadge" class="score-badge">--</div>
+          <div>
+            <div class="label">Safety Score</div>
+            <div id="riskLevel" class="risk-pill">Unknown</div>
+            <div id="scoreScaleText" class="score-scale">Score Limit: 1-10</div>
+          </div>
+        </div>
+
+        <div class="scale-guide">
+          <span><strong>1-4</strong> High Risk</span>
+          <span><strong>5-7</strong> Medium Risk</span>
+          <span><strong>8-10</strong> Low Risk</span>
+        </div>
+
+        <div class="block">
+          <h2>Summary</h2>
+          <p id="summaryText"></p>
+        </div>
+
+        <div class="block">
+          <h2>Key Points</h2>
+          <ul id="keyPointsList"></ul>
+        </div>
+
+        <div class="block">
+          <h2>Red Flags</h2>
+          <ul id="redFlagsList"></ul>
+        </div>
+
+        <div class="block">
+          <h2>Categories</h2>
+          <table class="category-table">
+            <tbody>
+              <tr><td>Data Collection</td><td id="catDataCollection">-</td></tr>
+              <tr><td>Third-Party Sharing</td><td id="catThirdParty">-</td></tr>
+              <tr><td>Tracking</td><td id="catTracking">-</td></tr>
+              <tr><td>User Rights</td><td id="catRights">-</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        This is an AI-generated summary and not legal advice.
+      </footer>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
