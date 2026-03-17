@@ -57,8 +57,6 @@ privacy_detector/
 
 You can set the API key in the popup input field.
 
-> Security note: Do not commit real API keys to public repositories. If a key has been exposed, revoke/rotate it immediately.
-
 ### Privacy Mode
 
 - **ON**: Uses local heuristic analysis (no external API calls)
