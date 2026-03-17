@@ -23,7 +23,7 @@ PolicyGuard AI is a Chrome Extension (Manifest V3) that detects and summarizes P
 ## Project Structure
 
 ```text
-privacy_detector/
+PolicyGuard-AI/
 ├── manifest.json
 ├── background.js
 ├── content.js
