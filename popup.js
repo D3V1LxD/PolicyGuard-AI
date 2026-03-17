@@ -1,5 +1,7 @@
 const pageStatus = document.getElementById("pageStatus");
 const privacyModeToggle = document.getElementById("privacyModeToggle");
+const autoWebsiteToggle = document.getElementById("autoWebsiteToggle");
+const autoAuthToggle = document.getElementById("autoAuthToggle");
 const apiKeyInput = document.getElementById("apiKeyInput");
 const analyzeBtn = document.getElementById("analyzeBtn");
 
@@ -109,11 +111,27 @@ async function loadStatus() {
 
   currentTabId = tab.id;
 
-  const settings = await chrome.storage.local.get(["githubApiKey", "nvidiaApiKey"]);
+  const settings = await chrome.storage.local.get([
+    "githubApiKey",
+    "nvidiaApiKey",
+    "privacyMode",
+    "autoAnalyzeWebsite",
+    "autoAnalyzeAuthPages"
+  ]);
   const savedKey = settings.githubApiKey || settings.nvidiaApiKey;
   if (savedKey && savedKey !== "YOUR_GITHUB_API_KEY" && savedKey !== "YOUR_NVIDIA_API_KEY") {
     apiKeyInput.value = savedKey;
   }
+
+  privacyModeToggle.checked = Boolean(settings.privacyMode);
+  autoWebsiteToggle.checked =
+    typeof settings.autoAnalyzeWebsite === "undefined"
+      ? true
+      : Boolean(settings.autoAnalyzeWebsite);
+  autoAuthToggle.checked =
+    typeof settings.autoAnalyzeAuthPages === "undefined"
+      ? true
+      : Boolean(settings.autoAnalyzeAuthPages);
 
   const response = await chrome.runtime.sendMessage({
     type: "GET_TAB_STATUS",
@@ -126,7 +144,6 @@ async function loadStatus() {
   }
 
   const status = response.status;
-  privacyModeToggle.checked = Boolean(status.privacyMode);
 
   if (status.detection?.isPolicyPage) {
     pageStatus.textContent = "Policy-like page detected.";
@@ -141,26 +158,35 @@ async function loadStatus() {
 
 privacyModeToggle.addEventListener("change", async () => {
   setError("");
-  const enabled = privacyModeToggle.checked;
-  const response = await chrome.runtime.sendMessage({
-    type: "SET_PRIVACY_MODE",
-    payload: { enabled }
-  });
-
-  if (!response?.ok) {
-    setError(response?.error || "Failed to change privacy mode.");
+  try {
+    const enabled = privacyModeToggle.checked;
+    await chrome.storage.local.set({ privacyMode: enabled });
+  } catch (error) {
+    setError(error.message || "Failed to change privacy mode.");
   }
 });
 
-apiKeyInput.addEventListener("blur", async () => {
-  const apiKey = apiKeyInput.value.trim() || "YOUR_GITHUB_API_KEY";
-  const response = await chrome.runtime.sendMessage({
-    type: "SAVE_API_KEY",
-    payload: { apiKey }
-  });
+async function saveAutoToggles() {
+  setError("");
+  try {
+    await chrome.storage.local.set({
+      autoAnalyzeWebsite: Boolean(autoWebsiteToggle.checked),
+      autoAnalyzeAuthPages: Boolean(autoAuthToggle.checked)
+    });
+  } catch (error) {
+    setError(error.message || "Failed to update auto-analysis toggles.");
+  }
+}
 
-  if (!response?.ok) {
-    setError(response?.error || "Failed to save API key.");
+autoWebsiteToggle.addEventListener("change", saveAutoToggles);
+autoAuthToggle.addEventListener("change", saveAutoToggles);
+
+apiKeyInput.addEventListener("blur", async () => {
+  try {
+    const apiKey = apiKeyInput.value.trim() || "YOUR_GITHUB_API_KEY";
+    await chrome.storage.local.set({ githubApiKey: apiKey, nvidiaApiKey: apiKey });
+  } catch (error) {
+    setError(error.message || "Failed to save API key.");
   }
 });
 

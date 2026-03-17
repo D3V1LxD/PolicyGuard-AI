@@ -7,12 +7,16 @@ PolicyGuard AI is a Chrome Extension (Manifest V3) that detects and summarizes P
 - Automatic detection of policy-like pages
 - Auto-analysis on sign-in/sign-up pages
 - Website-level policy discovery (finds Privacy/Terms links and summarizes)
+- Independent ON/OFF switches for:
+   - Auto Analyze Every Website
+   - Auto Analyze Sign In / Sign Up
 - Manual **Analyze Page** button in popup
 - Clean policy text extraction from DOM
 - Long document handling with chunking (> 3000 words)
 - Structured risk output (score, risk level, key points, red flags, categories)
 - Privacy Mode (local/mock analysis without API calls)
 - Classic popup UI with risk bands and score limits
+- Silent skip behavior when readable policy text is not found (no blocking page behavior)
 
 ## Tech Stack
 
@@ -62,15 +66,44 @@ You can set the API key in the popup input field.
 - **ON**: Uses local heuristic analysis (no external API calls)
 - **OFF**: Uses LLM API analysis
 
+### Auto Analysis Switches
+
+In popup controls, you can turn each mode ON/OFF independently:
+
+- **Auto Analyze Every Website**
+   - ON: attempts website-wide policy discovery and summary on page visit
+   - OFF: disables automatic website-level policy summary
+- **Auto Analyze Sign In / Sign Up**
+   - ON: runs automatic analysis on detected authentication pages
+   - OFF: disables auth-page automatic analysis
+
+These preferences are persisted in `chrome.storage.local` and survive popup reload/browser restart.
+
 ## How It Works
 
 1. Content script detects policy/sign-in/sign-up context.
 2. Background service worker orchestrates extraction/analysis.
 3. For website summaries, policy links are discovered and fetched.
 4. If policy text is very long, chunk summaries are generated and merged.
-5. Results are shown in:
+5. If no readable policy text is found, auto-analysis flow silently skips.
+6. Results are shown in:
    - Extension popup UI
    - In-page auto popup for automatic analysis flows
+
+## Troubleshooting
+
+- **“Could not establish connection. Receiving end does not exist.”**
+   - Reload the extension from `chrome://extensions`
+   - Refresh the active site tab
+   - This usually means the content script was not loaded in the page context yet
+
+- **Preferences reset after reload**
+   - Reopen popup and verify switches are ON/OFF as expected
+   - Current implementation saves preferences directly to `chrome.storage.local`
+
+- **No auto popup on some sites**
+   - Some pages may not expose clear Privacy/Terms links or readable text
+   - Manual **Analyze Page** remains available
 
 ## Output Format (Structured JSON)
 

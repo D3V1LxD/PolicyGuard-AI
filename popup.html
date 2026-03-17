@@ -20,7 +20,26 @@
       <section class="controls">
         <label class="toggle-row">
           <span>Privacy Mode</span>
-          <input id="privacyModeToggle" type="checkbox" />
+          <span class="switch">
+            <input id="privacyModeToggle" type="checkbox" />
+            <span class="slider"></span>
+          </span>
+        </label>
+
+        <label class="toggle-row">
+          <span>Auto Analyze Every Website</span>
+          <span class="switch">
+            <input id="autoWebsiteToggle" type="checkbox" />
+            <span class="slider"></span>
+          </span>
+        </label>
+
+        <label class="toggle-row">
+          <span>Auto Analyze Sign In / Sign Up</span>
+          <span class="switch">
+            <input id="autoAuthToggle" type="checkbox" />
+            <span class="slider"></span>
+          </span>
         </label>
 
         <label class="field-label" for="apiKeyInput">GitHub API Key</label>

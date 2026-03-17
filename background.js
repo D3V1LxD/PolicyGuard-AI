@@ -20,6 +20,8 @@ const websiteAutoSummaryCache = new Map();
 async function initializeSettings() {
   const defaults = {
     privacyMode: false,
+    autoAnalyzeWebsite: true,
+    autoAnalyzeAuthPages: true,
     githubApiKey: "YOUR_GITHUB_API_KEY",
     githubApiUrl: "https://models.inference.ai.azure.com/chat/completions",
     modelName: "Meta-Llama-3.1-8B-Instruct"
@@ -91,6 +93,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "SET_AUTO_ANALYZE_TOGGLES") {
+    chrome.storage.local
+      .set({
+        autoAnalyzeWebsite: Boolean(message.payload?.autoAnalyzeWebsite),
+        autoAnalyzeAuthPages: Boolean(message.payload?.autoAnalyzeAuthPages)
+      })
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   if (message?.type === "SIGNUP_PAGE_DETECTED") {
     const tabId = sender.tab?.id;
     if (typeof tabId !== "number") {
@@ -98,45 +111,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    const currentUrl = sender.tab?.url || message.payload?.url || "";
-    const currentSignature = `${tabId}:${currentUrl}`;
-    const previousSignature = signupAutoAnalysisState.get(tabId);
-
-    if (!message.payload?.isSignupPage || previousSignature === currentSignature) {
-      sendResponse({ ok: true, skipped: true });
-      return;
-    }
-
-    signupAutoAnalysisState.set(tabId, currentSignature);
-
-    handleAnalyzePage({ payload: { tabId } })
-      .then((result) =>
-        chrome.tabs.sendMessage(tabId, {
-          type: "SHOW_ANALYSIS_POPUP",
-          payload: {
-            result,
-            source: "signup-auto"
-          }
-        })
-      )
-      .catch((error) => {
-        const messageText = String(error?.message || "").toLowerCase();
-        if (
-          messageText.includes("no readable policy text") ||
-          messageText.includes("no readable text found")
-        ) {
+    chrome.storage.local
+      .get(["autoAnalyzeAuthPages"])
+      .then((settings) => {
+        if (!Boolean(settings.autoAnalyzeAuthPages)) {
+          sendResponse({ ok: true, skipped: true });
           return;
         }
 
-        return chrome.tabs.sendMessage(tabId, {
-          type: "SHOW_ANALYSIS_POPUP",
-          payload: {
-            error: error.message || "Auto-analysis failed.",
-            source: "signup-auto"
-          }
-        });
+        const currentUrl = sender.tab?.url || message.payload?.url || "";
+        const currentSignature = `${tabId}:${currentUrl}`;
+        const previousSignature = signupAutoAnalysisState.get(tabId);
+
+        if (!message.payload?.isSignupPage || previousSignature === currentSignature) {
+          sendResponse({ ok: true, skipped: true });
+          return;
+        }
+
+        signupAutoAnalysisState.set(tabId, currentSignature);
+
+        handleAnalyzePage({ payload: { tabId } })
+          .then((result) =>
+            chrome.tabs.sendMessage(tabId, {
+              type: "SHOW_ANALYSIS_POPUP",
+              payload: {
+                result,
+                source: "signup-auto"
+              }
+            })
+          )
+          .catch((error) => {
+            const messageText = String(error?.message || "").toLowerCase();
+            if (
+              messageText.includes("no readable policy text") ||
+              messageText.includes("no readable text found")
+            ) {
+              return;
+            }
+
+            return chrome.tabs.sendMessage(tabId, {
+              type: "SHOW_ANALYSIS_POPUP",
+              payload: {
+                error: error.message || "Auto-analysis failed.",
+                source: "signup-auto"
+              }
+            });
+          })
+          .finally(() => sendResponse({ ok: true }));
       })
-      .finally(() => sendResponse({ ok: true }));
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
 
     return true;
   }
@@ -148,8 +171,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    handleAutoAnalyzeWebsite(message, sender, tabId)
-      .then(() => sendResponse({ ok: true }))
+    chrome.storage.local
+      .get(["autoAnalyzeWebsite"])
+      .then((settings) => {
+        if (!Boolean(settings.autoAnalyzeWebsite)) {
+          sendResponse({ ok: true, skipped: true });
+          return;
+        }
+
+        handleAutoAnalyzeWebsite(message, sender, tabId)
+          .then(() => sendResponse({ ok: true }))
+          .catch((error) => sendResponse({ ok: false, error: error.message }));
+      })
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
@@ -189,9 +222,21 @@ async function handleGetTabStatus(message) {
     throw new Error("Missing tab id.");
   }
 
-  const storage = await chrome.storage.local.get(["privacyMode"]);
+  const storage = await chrome.storage.local.get([
+    "privacyMode",
+    "autoAnalyzeWebsite",
+    "autoAnalyzeAuthPages"
+  ]);
   return {
     privacyMode: Boolean(storage.privacyMode),
+    autoAnalyzeWebsite:
+      typeof storage.autoAnalyzeWebsite === "undefined"
+        ? true
+        : Boolean(storage.autoAnalyzeWebsite),
+    autoAnalyzeAuthPages:
+      typeof storage.autoAnalyzeAuthPages === "undefined"
+        ? true
+        : Boolean(storage.autoAnalyzeAuthPages),
     detection: tabDetectionState.get(tabId) || {
       isPolicyPage: false,
       confidence: "low",
