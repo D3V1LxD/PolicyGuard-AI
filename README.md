@@ -43,7 +43,7 @@ privacy_detector/
 1. Open Chrome and go to `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select the `privacy_detector` folder.
+4. Select the `PolicyGuard-AI` folder.
 5. Pin **PolicyGuard AI** from the extensions toolbar.
 
 ## Configuration
